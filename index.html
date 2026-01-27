@@ -1,36 +1,91 @@
-<form id="a">
-  <input type="file" name="file" required>
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuff Sound Uploader For Guesting hub</title>
+<style>
+body{font-family:Arial,sans-serif;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+#note{font-size:.85rem;margin-bottom:18px}
+form{width:90%;max-width:400px;display:flex;flex-direction:column;gap:12px}
+input[type=file]{padding:14px;font-size:1rem}
+button{padding:12px;font-size:.9rem;cursor:pointer}
+#link,#copyBtn,#copyText{display:none;width:100%;max-width:400px;margin-top:10px}
+#link{font-family:monospace;font-size:.9rem;padding:8px}
+#copyBtn{padding:7px;font-size:.8rem}
+#copyText{font-size:.8rem;margin-top:5px}
+</style>
+</head>
+<body>
+<h1>Tuff Sound Uploader For Guesting hub</h1>
+<div id="note">Make sure sounds are mp3, ogg, wav</div>
+
+<form id="f">
+  <input id="file" type="file" accept=".mp3,.ogg,.wav" required />
   <button type="submit">Upload</button>
 </form>
-<input id="link" readonly>
+
+<input id="link" readonly />
 <button id="copyBtn">Copy</button>
 <div id="copyText">Copy this and paste on the Custom LMS inside</div>
 
 <script>
-const a=document.getElementById("a"),
-link=document.getElementById("link"),
-copyBtn=document.getElementById("copyBtn"),
-copyText=document.getElementById("copyText");
+const f = document.getElementById('f');
+const fileInput = document.getElementById('file');
+const link = document.getElementById('link');
+const copyBtn = document.getElementById('copyBtn');
+const copyText = document.getElementById('copyText');
 
-a.onsubmit=async e=>{
-  e.preventDefault();
-  const file=a.querySelector('input[type=file]').files[0];
-  if(!file){alert("Select a file");return;}
+f.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const file = fileInput.files[0];
+  if (!file) { alert('Select a file'); return; }
 
-  const formData=new FormData();
-  formData.append('file', file);
+  // size guard (optional)
+  const maxBytes = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxBytes) {
+    if (!confirm('File is >5MB and may fail. Continue?')) return;
+  }
 
-  const res=await fetch('/api/upload', {method:'POST', body:formData});
-  const url=await res.text();
+  // read file as base64
+  const reader = new FileReader();
+  reader.onload = async () => {
+    // result is "data:application/octet-stream;base64,AAAA..."
+    const result = reader.result;
+    const commaIndex = result.indexOf(',');
+    const base64 = (commaIndex >= 0) ? result.slice(commaIndex + 1) : result;
 
-  link.value=url;
-  link.style.display=copyBtn.style.display=copyText.style.display='block';
-};
+    // send JSON to API
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, data: base64 })
+      });
 
-copyBtn.onclick=()=>{
+      if (!res.ok) {
+        const txt = await res.text();
+        alert('Upload failed: ' + txt);
+        return;
+      }
+
+      const publicUrl = await res.text();
+      link.value = publicUrl;
+      link.style.display = copyBtn.style.display = copyText.style.display = 'block';
+    } catch (err) {
+      alert('Upload failed (network): ' + err.message);
+    }
+  };
+  reader.onerror = () => alert('File read error');
+  reader.readAsDataURL(file); // triggers reader.onload
+});
+
+copyBtn.onclick = () => {
   link.select();
   document.execCommand('copy');
-  copyBtn.innerText="Copied";
-  setTimeout(()=>copyBtn.innerText="Copy",1500);
+  copyBtn.innerText = 'Copied';
+  setTimeout(()=>copyBtn.innerText = 'Copy', 1500);
 };
 </script>
+</body>
+</html>
