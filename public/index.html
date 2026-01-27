@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuff Sound Uploader For Guesting hub</title>
+<style>
+body{font-family:Arial;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{text-align:center;font-size:1.5rem}
+#n{text-align:center;font-size:.85rem;margin-top:5px}
+form{width:90%;max-width:400px;display:flex;flex-direction:column;gap:12px;margin-top:25px}
+input[type=file]{padding:15px;font-size:1rem}
+button{padding:12px;font-size:.9rem}
+#l,#t,#c{display:none;width:100%;max-width:400px;margin-top:10px}
+#l{font-family:monospace;font-size:.9rem;padding:8px}
+#c{padding:7px;font-size:.8rem}
+#t{font-size:.8rem}
+</style>
+</head>
+<body>
+
+<h1>Tuff Sound Uploader For Guesting hub</h1>
+<div id="n">Make sure sounds are mp3, ogg, wav</div>
+
+<form id="a">
+<input type="file" name="file" required>
+<button type="submit">Upload</button>
+</form>
+
+<input id="l" readonly>
+<button id="c">Copy</button>
+<div id="t">Copy this and paste on the Custom LMS inside</div>
+
+<script>
+const a=document.getElementById("a"),
+l=document.getElementById("l"),
+c=document.getElementById("c"),
+t=document.getElementById("t");
+
+a.onsubmit=async e=>{
+e.preventDefault();
+const f=new FormData(a);
+const r=await fetch("/upload",{method:"POST",body:f});
+l.value=await r.text();
+l.style.display=c.style.display=t.style.display="block";
+};
+
+c.onclick=()=>{
+l.select();
+document.execCommand("copy");
+c.innerText="Copied";
+setTimeout(()=>c.innerText="Copy",1500);
+};
+</script>
+
+</body>
+</html>
