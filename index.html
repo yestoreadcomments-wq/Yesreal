@@ -30,61 +30,44 @@ button{padding:12px;font-size:.9rem;cursor:pointer}
 <div id="copyText">Copy this and paste on the Custom LMS inside</div>
 
 <script>
-const f = document.getElementById('f');
-const fileInput = document.getElementById('file');
-const link = document.getElementById('link');
-const copyBtn = document.getElementById('copyBtn');
-const copyText = document.getElementById('copyText');
+const f=document.getElementById('f'),
+fileInput=document.getElementById('file'),
+link=document.getElementById('link'),
+copyBtn=document.getElementById('copyBtn'),
+copyText=document.getElementById('copyText');
 
-f.addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  const file = fileInput.files[0];
-  if (!file) { alert('Select a file'); return; }
+f.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const file=fileInput.files[0];
+  if(!file){alert('Select a file'); return;}
 
-  // size guard (optional)
-  const maxBytes = 5 * 1024 * 1024; // 5MB
-  if (file.size > maxBytes) {
-    if (!confirm('File is >5MB and may fail. Continue?')) return;
-  }
+  const reader=new FileReader();
+  reader.onload=async ()=>{
+    const result=reader.result;
+    const commaIndex=result.indexOf(',');
+    const base64=(commaIndex>=0)?result.slice(commaIndex+1):result;
 
-  // read file as base64
-  const reader = new FileReader();
-  reader.onload = async () => {
-    // result is "data:application/octet-stream;base64,AAAA..."
-    const result = reader.result;
-    const commaIndex = result.indexOf(',');
-    const base64 = (commaIndex >= 0) ? result.slice(commaIndex + 1) : result;
-
-    // send JSON to API
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: file.name, data: base64 })
-      });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        alert('Upload failed: ' + txt);
+    try{
+      const res=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,data:base64})});
+      if(!res.ok){
+        const txt=await res.text();
+        alert('Upload failed: '+txt);
         return;
       }
-
-      const publicUrl = await res.text();
-      link.value = publicUrl;
-      link.style.display = copyBtn.style.display = copyText.style.display = 'block';
-    } catch (err) {
-      alert('Upload failed (network): ' + err.message);
-    }
+      const publicUrl=await res.text();
+      link.value=publicUrl;
+      link.style.display=copyBtn.style.display=copyText.style.display='block';
+    }catch(err){alert('Upload failed: '+err.message);}
   };
-  reader.onerror = () => alert('File read error');
-  reader.readAsDataURL(file); // triggers reader.onload
+  reader.onerror=()=>alert('File read error');
+  reader.readAsDataURL(file);
 });
 
-copyBtn.onclick = () => {
+copyBtn.onclick=()=>{
   link.select();
   document.execCommand('copy');
-  copyBtn.innerText = 'Copied';
-  setTimeout(()=>copyBtn.innerText = 'Copy', 1500);
+  copyBtn.innerText='Copied';
+  setTimeout(()=>copyBtn.innerText='Copy',1500);
 };
 </script>
 </body>
