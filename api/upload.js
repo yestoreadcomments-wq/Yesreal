@@ -1,39 +1,58 @@
-const { createClient } = require('@supabase/supabase-js');
-const formidable = require('formidable');
-const fs = require('fs');
+import { createClient } from "@supabase/supabase-js";
 
-export const config = {
-  api: { bodyParser: false }
-};
+const SUPABASE_URL = "https://rmbbkrpqpogblzilohch.supabase.co"; // your URL
+const SUPABASE_KEY = process.env.SUPABASE_KEY; // set in Vercel env
 
-const SUPABASE_URL = "https://rmbbkrpqpogblzilohch.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+if (!SUPABASE_KEY) {
+  console.error("Missing SUPABASE_KEY env var");
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  try {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
 
-  const form = new formidable.IncomingForm();
-  form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).send("File parse error: " + err.message);
+    // parse JSON body
+    const body = await req.json();
+    const { name, data } = body || {};
 
-    const file = files.file;
-    if (!file) return res.status(400).send("No file uploaded");
+    if (!name || !data) {
+      res.status(400).send("Missing name or data");
+      return;
+    }
 
-    const buffer = fs.readFileSync(file.filepath);
+    // decode base64 to buffer
+    const buffer = Buffer.from(data, "base64");
 
-    const { error } = await supabase
-      .storage
-      .from('sounds')
-      .upload(file.originalFilename, buffer, { upsert: true });
+    // upload to Supabase storage (bucket 'sounds' must exist and be public)
+    const { error: uploadError } = await supabase.storage
+      .from("sounds")
+      .upload(name, buffer, { upsert: true });
 
-    if (error) return res.status(500).send("Upload failed: " + error.message);
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      res.status(500).send("Upload failed: " + uploadError.message);
+      return;
+    }
 
-    const { publicURL } = supabase
-      .storage
-      .from('sounds')
-      .getPublicUrl(file.originalFilename);
+    // get public URL
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from("sounds")
+      .getPublicUrl(name);
 
-    res.status(200).send(publicURL);
-  });
+    if (urlError) {
+      console.error("Supabase getPublicUrl error:", urlError);
+      res.status(500).send("Failed to get URL: " + urlError.message);
+      return;
+    }
+
+    res.status(200).send(urlData.publicUrl);
+  } catch (e) {
+    console.error("Unexpected server error:", e);
+    res.status(500).send("Server error");
+  }
 }
