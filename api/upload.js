@@ -1,58 +1,53 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://rmbbkrpqpogblzilohch.supabase.co"; // your URL
-const SUPABASE_KEY = process.env.SUPABASE_KEY; // set in Vercel env
+export const config = { api: { bodyParser: false } };
 
-if (!SUPABASE_KEY) {
-  console.error("Missing SUPABASE_KEY env var");
-}
+// Supabase public anon key (hardcoded for testing)
+const SUPABASE_URL = "https://rmbbkrpqpogblzilohch.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtYmJya3BxcG9nYmx6aWxvaGNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NjMxNDAsImV4cCI6MjA3MzQzOTE0MH0.nWvLwhZiegzp3xw9FxW5U8yimrzCcG4JT026cd7uA9M";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
   try {
-    if (req.method !== "POST") {
-      res.status(405).send("Method Not Allowed");
-      return;
-    }
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-    // parse JSON body
-    const body = await req.json();
-    const { name, data } = body || {};
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const rawBody = Buffer.concat(chunks).toString();
 
-    if (!name || !data) {
-      res.status(400).send("Missing name or data");
-      return;
-    }
+    // Expecting JSON { name: "file.mp3", data: "base64..." }
+    let parsed;
+    try { parsed = JSON.parse(rawBody); } 
+    catch(e) { return res.status(400).send("Invalid JSON"); }
 
-    // decode base64 to buffer
+    const { name, data } = parsed;
+    if (!name || !data) return res.status(400).send("Missing name or data");
+
+    // decode base64
     const buffer = Buffer.from(data, "base64");
 
-    // upload to Supabase storage (bucket 'sounds' must exist and be public)
-    const { error: uploadError } = await supabase.storage
+    // check if bucket exists (sounds)
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets.find(b => b.name === "sounds")) {
+      return res.status(500).send("Bucket 'sounds' does not exist. Create it first!");
+    }
+
+    // upload file
+    const { error } = await supabase.storage
       .from("sounds")
       .upload(name, buffer, { upsert: true });
 
-    if (uploadError) {
-      console.error("Supabase upload error:", uploadError);
-      res.status(500).send("Upload failed: " + uploadError.message);
-      return;
-    }
+    if (error) return res.status(500).send("Supabase upload failed: " + error.message);
 
     // get public URL
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from("sounds")
-      .getPublicUrl(name);
-
-    if (urlError) {
-      console.error("Supabase getPublicUrl error:", urlError);
-      res.status(500).send("Failed to get URL: " + urlError.message);
-      return;
-    }
+    const { data: urlData, error: urlError } = supabase.storage.from("sounds").getPublicUrl(name);
+    if (urlError) return res.status(500).send("Failed to get public URL: " + urlError.message);
 
     res.status(200).send(urlData.publicUrl);
-  } catch (e) {
-    console.error("Unexpected server error:", e);
-    res.status(500).send("Server error");
+
+  } catch (err) {
+    console.error("Server error:", err);
+    res.status(500).send("Server error: " + err.message);
   }
 }
