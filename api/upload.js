@@ -1,31 +1,42 @@
 import { createClient } from '@supabase/supabase-js';
+import formidable from 'formidable';
+
+export const config = {
+  api: {
+    bodyParser: false, // important! disables default parser
+  },
+};
 
 const SUPABASE_URL = "https://rmbbkrpqpogblzilohch.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_KEY; // secure key
-
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const data = await req.formData();
-  const file = data.get('file');
-  if (!file) return res.status(400).send('No file uploaded');
+  const form = new formidable.IncomingForm();
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(500).send("File parse error: "+err.message);
 
-  const { error } = await supabase
-    .storage
-    .from('sounds')  // your bucket name
-    .upload(file.name, buffer, { upsert: true });
+    const file = files.file; // same name as your <input name="file">
+    if (!file) return res.status(400).send("No file uploaded");
 
-  if (error) return res.status(500).send(error.message);
+    const fs = await import('fs');
+    const buffer = fs.readFileSync(file.filepath);
 
-  const { publicURL } = supabase
-    .storage
-    .from('sounds')
-    .getPublicUrl(file.name);
+    const { error } = await supabase
+      .storage
+      .from('sounds')
+      .upload(file.originalFilename, buffer, { upsert: true });
 
-  res.status(200).send(publicURL);
+    if (error) return res.status(500).send("Upload failed: "+error.message);
+
+    const { publicURL } = supabase
+      .storage
+      .from('sounds')
+      .getPublicUrl(file.originalFilename);
+
+    res.status(200).send(publicURL);
+  });
 }
