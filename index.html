@@ -5,69 +5,82 @@
 <title>Tuff Sound Uploader For Guesting hub</title>
 <style>
 body{font-family:Arial,sans-serif;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;padding:20px}
-h1{font-size:1.5rem;margin-bottom:6px}
-#note{font-size:.85rem;margin-bottom:18px}
-form{width:90%;max-width:400px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:1.4rem;margin:0 0 6px}
+#note{font-size:.85rem;margin-bottom:16px;text-align:center}
+form{width:90%;max-width:420px;display:flex;flex-direction:column;gap:12px}
 input[type=file]{padding:14px;font-size:1rem}
-button{padding:12px;font-size:.9rem;cursor:pointer}
-#link,#copyBtn,#copyText{display:none;width:100%;max-width:400px;margin-top:10px}
+button{padding:12px;font-size:.95rem;cursor:pointer}
+#link,#copyBtn,#copyText{display:none;width:100%;max-width:420px;margin-top:10px}
 #link{font-family:monospace;font-size:.9rem;padding:8px}
-#copyBtn{padding:7px;font-size:.8rem}
-#copyText{font-size:.8rem;margin-top:5px}
+#copyBtn{padding:8px;font-size:.85rem}
+#copyText{font-size:.85rem;margin-top:6px}
 </style>
 </head>
 <body>
 <h1>Tuff Sound Uploader For Guesting hub</h1>
 <div id="note">Make sure sounds are mp3, ogg, wav</div>
 
-<form id="f">
-  <input id="file" type="file" accept=".mp3,.ogg,.wav" required />
+<form id="form">
+  <input id="file" type="file" accept=".mp3,.ogg,.wav" required>
   <button type="submit">Upload</button>
 </form>
 
-<input id="link" readonly />
+<input id="link" readonly>
 <button id="copyBtn">Copy</button>
 <div id="copyText">Copy this and paste on the Custom LMS inside</div>
 
 <script>
-const f=document.getElementById('f'),
-fileInput=document.getElementById('file'),
-link=document.getElementById('link'),
-copyBtn=document.getElementById('copyBtn'),
-copyText=document.getElementById('copyText');
+const form = document.getElementById('form');
+const fileInput = document.getElementById('file');
+const link = document.getElementById('link');
+const copyBtn = document.getElementById('copyBtn');
+const copyText = document.getElementById('copyText');
 
-f.addEventListener('submit', async e=>{
-  e.preventDefault();
-  const file=fileInput.files[0];
-  if(!file){alert('Select a file'); return;}
+form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = fileInput.files[0];
+  if (!f) { alert('Select a file'); return; }
 
-  const reader=new FileReader();
-  reader.onload=async ()=>{
-    const result=reader.result;
-    const commaIndex=result.indexOf(',');
-    const base64=(commaIndex>=0)?result.slice(commaIndex+1):result;
+  // optional size guard ~12MB
+  if (f.size > 12 * 1024 * 1024) {
+    if (!confirm('File >12MB may fail. Continue?')) return;
+  }
 
-    try{
-      const res=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,data:base64})});
-      if(!res.ok){
-        const txt=await res.text();
-        alert('Upload failed: '+txt);
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const full = reader.result; // "data:audio/mpeg;base64,AAAA..."
+    const comma = full.indexOf(',');
+    const base64 = comma >= 0 ? full.slice(comma + 1) : full;
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: f.name, data: base64 })
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        alert('Upload failed: ' + txt);
         return;
       }
-      const publicUrl=await res.text();
-      link.value=publicUrl;
-      link.style.display=copyBtn.style.display=copyText.style.display='block';
-    }catch(err){alert('Upload failed: '+err.message);}
+
+      const raw = await res.text();
+      link.value = raw;
+      link.style.display = copyBtn.style.display = copyText.style.display = 'block';
+    } catch (err) {
+      alert('Upload failed (network): ' + err.message);
+    }
   };
-  reader.onerror=()=>alert('File read error');
-  reader.readAsDataURL(file);
+  reader.onerror = () => alert('File read error');
+  reader.readAsDataURL(f);
 });
 
-copyBtn.onclick=()=>{
+copyBtn.onclick = () => {
   link.select();
   document.execCommand('copy');
-  copyBtn.innerText='Copied';
-  setTimeout(()=>copyBtn.innerText='Copy',1500);
+  copyBtn.innerText = 'Copied';
+  setTimeout(()=>copyBtn.innerText = 'Copy',1500);
 };
 </script>
 </body>
