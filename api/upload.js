@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
     const buffer = Buffer.from(data, "base64");
 
     // --- HARD-CODE REPO / TOKEN HERE (replace values) ---
-    const GITHUB_TOKEN = "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"; // <-- replace with your PAT
+    const GITHUB_TOKEN = "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"; // <-- replace with your PAT
     const GITHUB_OWNER = "NilTransfer";
     const GITHUB_REPO  = "DataBase";
     const GITHUB_BRANCH = "main";
