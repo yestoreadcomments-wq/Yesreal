@@ -30,27 +30,27 @@ button{padding:12px;font-size:.95rem;cursor:pointer}
 <div id="copyText">Copy this and paste on the Custom LMS inside</div>
 
 <script>
-const form = document.getElementById('form');
-const fileInput = document.getElementById('file');
-const link = document.getElementById('link');
-const copyBtn = document.getElementById('copyBtn');
-const copyText = document.getElementById('copyText');
+const form=document.getElementById('form'),
+fileInput=document.getElementById('file'),
+link=document.getElementById('link'),
+copyBtn=document.getElementById('copyBtn'),
+copyText=document.getElementById('copyText');
 
-form.addEventListener('submit', async (ev) => {
+form.addEventListener('submit', async ev=>{
   ev.preventDefault();
   const f = fileInput.files[0];
   if (!f) { alert('Select a file'); return; }
 
-  // optional size guard ~12MB
-  if (f.size > 12 * 1024 * 1024) {
+  const maxBytes = 12 * 1024 * 1024;
+  if (f.size > maxBytes) {
     if (!confirm('File >12MB may fail. Continue?')) return;
   }
 
   const reader = new FileReader();
   reader.onload = async () => {
-    const full = reader.result; // "data:audio/mpeg;base64,AAAA..."
-    const comma = full.indexOf(',');
-    const base64 = comma >= 0 ? full.slice(comma + 1) : full;
+    const result = reader.result;
+    const comma = result.indexOf(',');
+    const base64 = comma >= 0 ? result.slice(comma+1) : result;
 
     try {
       const res = await fetch('/api/upload', {
@@ -59,14 +59,13 @@ form.addEventListener('submit', async (ev) => {
         body: JSON.stringify({ name: f.name, data: base64 })
       });
 
+      const text = await res.text();
       if (!res.ok) {
-        const txt = await res.text();
-        alert('Upload failed: ' + txt);
+        alert('Upload failed: ' + text);
         return;
       }
 
-      const raw = await res.text();
-      link.value = raw;
+      link.value = text;
       link.style.display = copyBtn.style.display = copyText.style.display = 'block';
     } catch (err) {
       alert('Upload failed (network): ' + err.message);
