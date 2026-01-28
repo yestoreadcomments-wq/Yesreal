@@ -1,87 +1,72 @@
 // api/upload.js
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER;
-const GITHUB_REPO  = process.env.GITHUB_REPO;
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || "main";
-const GITHUB_BASE_PATH = process.env.GITHUB_BASE_PATH || "sounds";
+import formidable from "formidable";
+import fs from "fs";
+import fetch from "node-fetch";
 
-function encodePathSegments(p){ return p.split("/").map(encodeURIComponent).join("/"); }
-function uniqueName(name){
-  const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : "";
-  const base = name.replace(ext,"");
-  return `${base}_${Date.now()}${ext}`;
-}
+export const config = {
+  api: {
+    bodyParser: false, // we use formidable
+  },
+};
 
-async function readJsonFromReq(req){
-  // If running in an environment that provides req.json(), use it.
-  if (typeof req.json === "function") {
-    return req.json();
-  }
-  // Otherwise collect chunks and parse
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString();
-  return JSON.parse(raw);
-}
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).send("Method not allowed");
 
-export default async function handler(req, res){
-  try{
-    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+  const form = new formidable.IncomingForm();
 
-    // parse body safely
-    let body;
+  form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(500).json({ error: "Error parsing file" });
+
+    const file = files.file;
+    if (!file) return res.status(400).json({ error: "No file uploaded" });
+
     try {
-      body = await readJsonFromReq(req);
-    } catch (err) {
-      console.error("Bad JSON:", err);
-      return res.status(400).send("Invalid JSON body");
+      const fileBuffer = fs.readFileSync(file.filepath);
+      const fileName = `${Date.now()}_${file.originalFilename}`;
+
+      // -------------------------------
+      // ✅ Hardcoded GitHub info
+      const GITHUB_TOKEN = "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"; // <-- replace with your PAT
+      const GITHUB_OWNER = "NilTransfer";
+      const GITHUB_REPO = "DataBase";
+      const GITHUB_BRANCH = "main";
+      const GITHUB_PATH = "sounds"; // folder in repo
+      // -------------------------------
+
+      const path = `${GITHUB_PATH}/${fileName}`;
+
+      const response = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "User-Agent": "upload-uploader",
+          },
+          body: JSON.stringify({
+            message: `Upload ${fileName}`,
+            content: fileBuffer.toString("base64"),
+            branch: GITHUB_BRANCH,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          error: `GitHub error (PUT): ${response.status}`,
+          message: data.message,
+        });
+      }
+
+      const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${path}`;
+      return res.status(200).send(rawUrl);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: "Upload failed: Server error" });
     }
-
-    let { name, data } = body || {};
-    if (!name || !data) return res.status(400).send("Missing name or data");
-
-    // guard size: base64 length -> approx bytes
-    const approxBytes = Math.floor((data.length * 3) / 4);
-    const MAX_BYTES = 12 * 1024 * 1024; // 12 MB binary (adjust if needed)
-    if (approxBytes > MAX_BYTES) {
-      return res.status(413).send("File too large");
-    }
-
-    // unique name to avoid collisions
-    name = uniqueName(name);
-
-    const filePath = `${GITHUB_BASE_PATH.replace(/(^\/|\/$)/g,"")}/${name}`;
-    const encodedPath = encodePathSegments(filePath);
-    const apiBase = `https://api.github.com/repos/${encodeURIComponent(GITHUB_OWNER)}/${encodeURIComponent(GITHUB_REPO)}/contents/${encodedPath}`;
-
-    // commit payload (create new file)
-    const payload = {
-      message: `Add ${filePath}`,
-      content: data,
-      branch: GITHUB_BRANCH
-    };
-
-    const putResp = await fetch(apiBase, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!putResp.ok) {
-      const txt = await putResp.text().catch(()=>"(no body)");
-      console.error("GitHub PUT error:", putResp.status, txt);
-      return res.status(502).send("GitHub error (PUT): " + putResp.status + " " + txt);
-    }
-
-    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(GITHUB_OWNER)}/${encodeURIComponent(GITHUB_REPO)}/${encodeURIComponent(GITHUB_BRANCH)}/${filePath}`;
-    return res.status(200).send(rawUrl);
-
-  } catch (err) {
-    console.error("Server error:", err);
-    return res.status(500).send("Server error: " + (err && err.message ? err.message : "unknown"));
-  }
+  });
 }
