@@ -1,44 +1,60 @@
-import fetch from "node-fetch";
+import formidable from "formidable";
+import fs from "fs";
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // ✅ ONLY CHANGE
-const OWNER = "NilTransfer";
-const REPO = "DataBase";
-const BRANCH = "main";
-const PATH = "uploads/test.txt";
+export const config = {
+  api: { bodyParser: false },
+};
 
-export default async function handler(req, res) {
-  try {
-    if (!GITHUB_TOKEN) {
-      return res.status(500).json({ error: "Missing GITHUB_TOKEN env var" });
-    }
-
-    const content = Buffer.from("Hello from Vercel").toString("base64");
-
-    const response = await fetch(
-      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,
-      {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${GITHUB_TOKEN}`,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: "Upload from Vercel",
-          content: content,
-          branch: BRANCH
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
-
-    return res.status(200).json({ success: true, data });
-  } catch (err) {
-    return res.status(500).json({ error: "Upload failed", details: err.message });
+export default function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const form = formidable({ multiples: false });
+
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    const f = files.file;
+    if (!f) {
+      return res.status(400).json({ error: "No file" });
+    }
+
+    try {
+      const b = fs.readFileSync(f.filepath).toString("base64");
+      const p = `sounds/${Date.now()}_${f.originalFilename}`;
+
+      const r = await fetch(
+        "https://api.github.com/repos/NilTransfer/DataBase/contents/" + p,
+        {
+          method: "PUT",
+          headers: {
+            "Authorization": "token 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",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "upload " + f.originalFilename,
+            content: b,
+            branch: "main"
+          })
+        }
+      );
+
+      const j = await r.json();
+
+      if (!r.ok) {
+        return res.status(500).json(j);
+      }
+
+      res.status(200).send(
+        "https://raw.githubusercontent.com/NilTransfer/DataBase/main/" + p
+      );
+
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 }
