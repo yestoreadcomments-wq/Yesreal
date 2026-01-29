@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuff Sound Uploader For Guesting hub</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;padding:18px;box-sizing:border-box}
+h1{font-size:1.4rem;margin:0 0 6px;text-align:center}
+#a{font-size:.85rem;margin-bottom:12px;text-align:center}
+form{width:92%;max-width:420px;display:flex;flex-direction:column;gap:10px}
+input[type=file]{padding:14px;font-size:1rem}
+button{padding:12px;font-size:1rem;cursor:pointer}
+#b,#c,#d{display:none;width:100%;max-width:420px;margin-top:10px}
+#b{padding:8px;font-family:monospace;font-size:.9rem}
+#c{padding:8px;font-size:.85rem}
+#d{font-size:.85rem;margin-top:6px}
+</style>
+</head>
+<body>
+<h1>Tuff Sound Uploader For Guesting hub 🥶</h1>
+<div id="a">Make sure sounds are mp3, ogg, wav</div>
+
+<form id="e" enctype="multipart/form-data">
+  <input id="f" type="file" name="file" accept=".mp3,.ogg,.wav" required>
+  <button type="submit">Upload</button>
+</form>
+
+<input id="b" readonly>
+<button id="c">Copy</button>
+<div id="d">Copy this and paste on the Custom LMS yes..</div>
+
+<script>
+const g=document.getElementById('e');
+const h=document.getElementById('f');
+const b=document.getElementById('b');
+const c=document.getElementById('c');
+const d=document.getElementById('d');
+
+g.addEventListener('submit',async i=>{
+  i.preventDefault();
+  const j=h.files[0];
+  if(!j){alert('get a file bro');return;}
+  const k=24*1024*1024;
+  if(j.size>k){
+    if(!confirm('omg file big big '))return;
+  }
+  const l=new FormData();
+  l.append('file',j);
+  try{
+    const m=await fetch('/api/upload',{method:'POST',body:l});
+    const n=await m.text();
+    if(!m.ok){
+      alert('Upload failed: '+n);
+      return;
+    }
+    b.value=n;
+    b.style.display=c.style.display=d.style.display='block';
+    b.select();
+    b.setSelectionRange(0,99999);
+  }catch(o){
+    alert('skidded error: '+o.message);
+  }
+});
+
+c.addEventListener('click',()=>{
+  b.select();
+  document.execCommand('copy');
+  c.innerText='Copied';
+  setTimeout(()=>c.innerText='Copy',1500);
+});
+</script>
+</body>
+</html>
