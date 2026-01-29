@@ -1,1 +1,67 @@
-const _0x8ce30d=_0xf7df;(function(_0x1adc33,_0x24a89f){const _0x463355=_0xf7df,_0x46a9d7=_0x1adc33();while(!![]){try{const _0x3a5042=parseInt(_0x463355(0x10f))/0x1+parseInt(_0x463355(0x11b))/0x2*(-parseInt(_0x463355(0x107))/0x3)+-parseInt(_0x463355(0x117))/0x4+parseInt(_0x463355(0x126))/0x5+-parseInt(_0x463355(0x11d))/0x6*(-parseInt(_0x463355(0x111))/0x7)+-parseInt(_0x463355(0x129))/0x8+parseInt(_0x463355(0x121))/0x9*(parseInt(_0x463355(0x108))/0xa);if(_0x3a5042===_0x24a89f)break;else _0x46a9d7['push'](_0x46a9d7['shift']());}catch(_0x32eb17){_0x46a9d7['push'](_0x46a9d7['shift']());}}}(_0x2571,0xc07e1));import _0x1f5f10 from'formidable';function _0x2571(){const _0x4f167f=['239334AubYEk','/contents/','https://api.github.com/repos/','filepath','3024CNtrjp','unknown','server\x20error','parse','Server\x20misconfigured:\x20missing\x20GITHUB_TOKEN','4097220jgYDYm','DataBase','https://raw.githubusercontent.com/','11698096wqmSUc','readFileSync','env','send','Method\x20Not\x20Allowed','Server\x20error:\x20','GITHUB_TOKEN','file','NilTransfer','24XGJwfl','43910WpNEDD','GitHub\x20error\x20(PUT)','main','error','PUT','github-uploader','method','458255qGnoAu','originalFilename','266ICFLNz','base64','json','status','application/vnd.github+json','message','2144552uqhttK','Upload\x20failed:\x20','token\x20','Unexpected\x20server\x20error:','370502nIuOZw','text'];_0x2571=function(){return _0x4f167f;};return _0x2571();}import _0xa57a4b from'fs';export const config={'api':{'bodyParser':![]}};function _0xf7df(_0x32633d,_0x13265e){_0x32633d=_0x32633d-0x106;const _0x257104=_0x2571();let _0xf7dfd4=_0x257104[_0x32633d];return _0xf7dfd4;}const GITHUB_OWNER=_0x8ce30d(0x106),GITHUB_REPO=_0x8ce30d(0x127),GITHUB_BRANCH=_0x8ce30d(0x10a),GITHUB_FOLDER='sounds';export default async function handler(_0x3c6fa0,_0x4a3f71){const _0x1f19f3=_0x8ce30d;try{if(_0x3c6fa0[_0x1f19f3(0x10e)]!=='POST')return _0x4a3f71[_0x1f19f3(0x114)](0x195)['json']({'error':_0x1f19f3(0x12d)});const _0x4eae79=process[_0x1f19f3(0x12b)][_0x1f19f3(0x12f)];if(!_0x4eae79)return _0x4a3f71[_0x1f19f3(0x114)](0x1f4)['json']({'error':_0x1f19f3(0x125)});const _0x42a066=_0x1f5f10({'multiples':![]});_0x42a066[_0x1f19f3(0x124)](_0x3c6fa0,async(_0x2d4e35,_0x4d687d,_0x32132f)=>{const _0xd12c0=_0x1f19f3;if(_0x2d4e35)return console[_0xd12c0(0x10b)]('Form\x20parse\x20error:',_0x2d4e35),_0x4a3f71['status'](0x1f4)[_0xd12c0(0x113)]({'error':'Error\x20parsing\x20upload:\x20'+_0x2d4e35[_0xd12c0(0x116)]});const _0x4c0ef1=_0x32132f[_0xd12c0(0x130)];if(!_0x4c0ef1)return _0x4a3f71[_0xd12c0(0x114)](0x190)['json']({'error':'No\x20file\x20uploaded'});try{const _0x53c6f8=_0xa57a4b[_0xd12c0(0x12a)](_0x4c0ef1[_0xd12c0(0x120)]),_0x3c2b6c=Date['now'](),_0x54acb9=_0x3c2b6c+'_'+_0x4c0ef1[_0xd12c0(0x110)],_0x4a66c4=GITHUB_FOLDER['replace'](/^\/|\/$/g,'')+'/'+_0x54acb9,_0x11f4f0=_0xd12c0(0x11f)+encodeURIComponent(GITHUB_OWNER)+'/'+encodeURIComponent(GITHUB_REPO)+_0xd12c0(0x11e)+encodeURIComponent(_0x4a66c4),_0x40d777={'message':'Upload\x20'+_0x54acb9,'content':_0x53c6f8['toString'](_0xd12c0(0x112)),'branch':GITHUB_BRANCH},_0x1b55ff=await fetch(_0x11f4f0,{'method':_0xd12c0(0x10c),'headers':{'Authorization':_0xd12c0(0x119)+_0x4eae79,'Accept':_0xd12c0(0x115),'User-Agent':_0xd12c0(0x10d)},'body':JSON['stringify'](_0x40d777)}),_0x1e048f=await _0x1b55ff[_0xd12c0(0x11c)]();let _0xfe297d=null;try{_0xfe297d=JSON['parse'](_0x1e048f);}catch(_0x577842){}if(!_0x1b55ff['ok'])return console[_0xd12c0(0x10b)]('GitHub\x20PUT\x20failed:',_0x1b55ff['status'],_0x1e048f),_0x4a3f71[_0xd12c0(0x114)](0x1f6)['json']({'error':_0xd12c0(0x109),'status':_0x1b55ff[_0xd12c0(0x114)],'message':_0xfe297d?.[_0xd12c0(0x116)]??_0x1e048f});const _0xe612e=_0xd12c0(0x128)+GITHUB_OWNER+'/'+GITHUB_REPO+'/'+GITHUB_BRANCH+'/'+_0x4a66c4;return _0x4a3f71['status'](0xc8)[_0xd12c0(0x12c)](_0xe612e);}catch(_0x5e22bd){return console[_0xd12c0(0x10b)]('Upload\x20error:',_0x5e22bd),_0x4a3f71[_0xd12c0(0x114)](0x1f4)[_0xd12c0(0x113)]({'error':_0xd12c0(0x118)+(_0x5e22bd['message']||_0xd12c0(0x123))});}});}catch(_0x1287b4){return console[_0x1f19f3(0x10b)](_0x1f19f3(0x11a),_0x1287b4),_0x4a3f71[_0x1f19f3(0x114)](0x1f4)[_0x1f19f3(0x113)]({'error':_0x1f19f3(0x12e)+(_0x1287b4[_0x1f19f3(0x116)]||_0x1f19f3(0x122))});}}
+import formidable from "formidable";
+import fs from "fs";
+
+export const config = { api: { bodyParser: false } };
+
+const GITHUB_OWNER = "NilTransfer";
+const GITHUB_REPO = "DataBase";
+const GITHUB_BRANCH = "main";
+const GITHUB_FOLDER = "sounds";
+
+export default async function handler(req, res) {
+  try {
+    if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return res.status(500).json({ error: "Server misconfigured: missing GITHUB_TOKEN" });
+
+    const form = formidable({ multiples: false });
+
+    form.parse(req, async (err, fields, files) => {
+      if (err) return res.status(500).json({ error: "Error parsing upload: " + err.message });
+      const file = files.file;
+      if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+      try {
+        const buffer = fs.readFileSync(file.filepath);
+        const timestamp = Date.now();
+        const safeName = `${timestamp}_${file.originalFilename}`;
+        const pathInRepo = `${GITHUB_FOLDER.replace(/^\/|\/$/g, "")}/${safeName}`;
+        const apiUrl = `https://api.github.com/repos/${encodeURIComponent(GITHUB_OWNER)}/${encodeURIComponent(GITHUB_REPO)}/contents/${encodeURIComponent(pathInRepo)}`;
+
+        const payload = {
+          message: `Upload ${safeName}`,
+          content: buffer.toString("base64"),
+          branch: GITHUB_BRANCH
+        };
+
+        const ghRes = await fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github+json",
+            "User-Agent": "github-uploader"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const ghText = await ghRes.text();
+        let ghJson = null;
+        try { ghJson = JSON.parse(ghText); } catch (e) {}
+
+        if (!ghRes.ok) return res.status(502).json({
+          error: "GitHub error (PUT)",
+          status: ghRes.status,
+          message: ghJson?.message ?? ghText
+        });
+
+        const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${pathInRepo}`;
+        return res.status(200).send(rawUrl);
+
+      } catch (e) {
+        return res.status(500).json({ error: "Upload failed: " + (e.message || "server error") });
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ error: "Server error: " + (e.message || "unknown") });
+  }
+}
