@@ -1,60 +1,89 @@
 import formidable from "formidable";
 import fs from "fs";
 
-export const config = {
-  api: { bodyParser: false },
-};
+export const config = { api: { bodyParser: false } };
 
-export default function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+// ====== HARD-CODED REPO INFO (change here if you want) ======
+const GITHUB_OWNER = "NilTransfer";
+const GITHUB_REPO = "DataBase";
+const GITHUB_BRANCH = "main";
+const GITHUB_FOLDER = "sounds"; // folder inside repo where files go
+// ============================================================
 
-  const form = formidable({ multiples: false });
-
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
+export default async function handler(req, res) {
+  try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    const f = files.file;
-    if (!f) {
-      return res.status(400).json({ error: "No file" });
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+      return res.status(500).json({ error: "Server misconfigured: missing GITHUB_TOKEN" });
     }
 
-    try {
-      const b = fs.readFileSync(f.filepath).toString("base64");
-      const p = `sounds/${Date.now()}_${f.originalFilename}`;
+    const form = formidable({ multiples: false });
 
-      const r = await fetch(
-        "https://api.github.com/repos/NilTransfer/DataBase/contents/" + p,
-        {
-          method: "PUT",
-          headers: {
-            "Authorization": "token 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",
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            message: "upload " + f.originalFilename,
-            content: b,
-            branch: "main"
-          })
-        }
-      );
-
-      const j = await r.json();
-
-      if (!r.ok) {
-        return res.status(500).json(j);
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        console.error("Form parse error:", err);
+        return res.status(500).json({ error: "Error parsing upload: " + err.message });
       }
 
-      res.status(200).send(
-        "https://raw.githubusercontent.com/NilTransfer/DataBase/main/" + p
-      );
+      const file = files.file;
+      if (!file) return res.status(400).json({ error: "No file uploaded" });
 
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
-  });
+      try {
+        // Read file bytes from temporary filepath
+        const buffer = fs.readFileSync(file.filepath);
+        // Build unique filename to avoid collisions
+        const timestamp = Date.now();
+        const safeName = `${timestamp}_${file.originalFilename}`;
+        const pathInRepo = `${GITHUB_FOLDER.replace(/^\/|\/$/g, "")}/${safeName}`;
+
+        // GitHub API: create/update file contents (base64 content)
+        const apiUrl = `https://api.github.com/repos/${encodeURIComponent(GITHUB_OWNER)}/${encodeURIComponent(GITHUB_REPO)}/contents/${encodeURIComponent(pathInRepo)}`;
+
+        const payload = {
+          message: `Upload ${safeName}`,
+          content: buffer.toString("base64"),
+          branch: GITHUB_BRANCH
+        };
+
+        const ghRes = await fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github+json",
+            "User-Agent": "github-uploader"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const ghText = await ghRes.text();
+        let ghJson = null;
+        try { ghJson = JSON.parse(ghText); } catch (e) { /* ignore */ }
+
+        if (!ghRes.ok) {
+          console.error("GitHub PUT failed:", ghRes.status, ghText);
+          // forward GitHub message if available
+          return res.status(502).json({
+            error: "GitHub error (PUT)",
+            status: ghRes.status,
+            message: ghJson?.message ?? ghText
+          });
+        }
+
+        // success -> return raw URL
+        const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${pathInRepo}`;
+        return res.status(200).send(rawUrl);
+
+      } catch (e) {
+        console.error("Upload error:", e);
+        return res.status(500).json({ error: "Upload failed: " + (e.message || "server error") });
+      }
+    });
+  } catch (e) {
+    console.error("Unexpected server error:", e);
+    return res.status(500).json({ error: "Server error: " + (e.message || "unknown") });
+  }
 }
